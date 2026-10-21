@@ -55,7 +55,10 @@ rules:
   - name: supervisor-direct
     match:
       source: zulip
-      sender: supervisor@example.org        # their Zulip email (click their name -> profile)
+      # Their Zulip email (click their name -> profile). If your organization hides
+      # emails, Zulip uses user<ID>@<your zulip host> instead, e.g. user16@zulip.example.org,
+      # with the user ID shown on their profile.
+      sender: supervisor@example.org
       any_tags: [dm, mention]
     priority: urgent
     notify: [phone]
