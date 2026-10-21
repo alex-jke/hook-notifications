@@ -1,0 +1,79 @@
+# Template for config.yaml. `hooks init` copies it to config.yaml (git-ignored);
+# edit that copy per machine. Secrets are written as ${NAME} and live in
+# .env (git-ignored); `hooks init` adds an empty line there for every
+# ${NAME} used below.
+#
+# Run only ONE machine with the Zulip source enabled, or you get every
+# notification twice.
+
+# ── Sources: where events come from ─────────────────────────────────────
+sources:
+  zulip:
+    enabled: true
+    site: ${ZULIP_SITE}
+    email: ${ZULIP_EMAIL}
+    api_key: ${ZULIP_API_KEY}
+    max_body_chars: 600
+
+# ── Notifiers: where notifications go ───────────────────────────────────
+# Providers:
+#   ntfy      topic, server (default https://ntfy.sh), token (optional)
+#   telegram  bot_token, chat_id
+#   apprise   urls (pip install -e '.[apprise]'; Signal, Matrix, Pushover, email, ...)
+#   log       writes to the log only
+# Combinators (refer to other notifiers by name, nest freely):
+#   fanout        targets: [...]   send to all; ok if at least one works
+#   fallback      targets: [...]   first one that works
+#   retry         target, attempts (3), delay (5s, doubles)
+#   min_priority  target, priority  only pass on >= priority
+notifiers:
+  ntfy_phone:
+    type: ntfy
+    topic: ${NTFY_TOPIC}
+
+  # telegram:
+  #   type: telegram
+  #   bot_token: ${TELEGRAM_BOT_TOKEN}
+  #   chat_id: ${TELEGRAM_CHAT_ID}
+
+  # The name rules refer to. Re-point it (e.g. to a fallback) without touching rules.
+  phone:
+    type: retry
+    target: ntfy_phone
+    attempts: 3
+
+  # everywhere: { type: fanout,   targets: [ntfy_phone, telegram] }
+  # reliable:   { type: fallback, targets: [telegram, ntfy_phone] }
+
+# ── Rules: which events produce which notifications ─────────────────────
+# Rules subscribe to the event bus in this order. A matching rule with
+# final: true (default) consumes the event; later rules don't see it.
+# match (all optional, all must hold): source, sender, any_tags, all_tags, keywords
+#   Zulip tags: dm, mention, wildcard_mention, channel:<name>, topic:<name>
+# priority: low | normal | high | urgent        notify: [] mutes the event
+rules:
+  - name: supervisor-direct
+    match:
+      source: zulip
+      sender: supervisor@example.org        # their Zulip email (click their name -> profile)
+      any_tags: [dm, mention]
+    priority: urgent
+    notify: [phone]
+
+  - name: supervisor-anywhere
+    match:
+      source: zulip
+      sender: supervisor@example.org
+    priority: high
+    notify: [phone]
+
+  # - name: anyone-dm-or-mention
+  #   match: { source: zulip, any_tags: [dm, mention] }
+  #   notify: [phone]
+
+# ── Health (optional, recommended on the always-on machine) ─────────────
+# Pings a https://healthchecks.io check every interval while all sources are
+# healthy, so you get alerted if hooks itself dies or loses Zulip.
+# health:
+#   ping_url: ${HEALTHCHECK_URL}
+#   interval: 300

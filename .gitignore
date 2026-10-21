@@ -1,0 +1,25 @@
+# --- per-machine files: secrets and personal settings, NEVER commit ---
+.env
+.env.*
+config.yaml
+zuliprc
+*.zuliprc
+logs/
+
+# --- local notes for Claude Code, kept out of the public repo ---
+CLAUDE.md
+
+# --- python ---
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# --- editors / OS ---
+.DS_Store
+.idea/
+.vscode/
